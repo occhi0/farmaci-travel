@@ -244,7 +244,47 @@
     <script>
         let farmaciCount = 0;
 
-        function addFarmaco() {
+        // Carica i dati salvati all'avvio
+        function loadSavedData() {
+            const savedData = JSON.parse(localStorage.getItem('farmaciData') || '[]');
+            
+            savedData.forEach(farmaco => {
+                addFarmacoWithData(farmaco);
+            });
+            
+            if (savedData.length === 0) {
+                updateVisibility();
+            }
+        }
+
+        // Salva i dati automaticamente
+        function saveData() {
+            const farmaci = document.querySelectorAll('.farmaco-card');
+            const data = [];
+            
+            farmaci.forEach(farmaco => {
+                const nome = farmaco.querySelector('.farmaco-nome').value;
+                const inputs = farmaco.querySelectorAll('.input-field');
+                const dosaggio = inputs[0].value;
+                const compressePerDose = inputs[1].value;
+                const volteAlGiorno = inputs[2].value;
+                const giorni = inputs[3].value;
+                
+                if (nome || dosaggio || compressePerDose !== '1' || volteAlGiorno !== '1' || giorni !== '7') {
+                    data.push({
+                        nome,
+                        dosaggio,
+                        compressePerDose,
+                        volteAlGiorno,
+                        giorni
+                    });
+                }
+            });
+            
+            localStorage.setItem('farmaciData', JSON.stringify(data));
+        }
+
+        function addFarmacoWithData(data = {}) {
             farmaciCount++;
             const container = document.getElementById('farmaciContainer');
             
@@ -254,7 +294,7 @@
             
             farmacoDiv.innerHTML = `
                 <div class="farmaco-header">
-                    <input type="text" class="farmaco-nome" placeholder="Nome farmaco" onchange="updateCalculations()">
+                    <input type="text" class="farmaco-nome" placeholder="Nome farmaco" value="${data.nome || ''}" onchange="updateCalculations(); saveData();">
                     <button class="remove-btn" onclick="removeFarmaco('farmaco_${farmaciCount}')">×</button>
                 </div>
                 
@@ -262,25 +302,26 @@
                     <div class="inputs-left">
                         <div class="input-group">
                             <label class="input-label">Dosaggio</label>
-                            <input type="text" class="input-field" placeholder="500mg" onchange="updateCalculations()">
+                            <input type="text" class="input-field" placeholder="500mg" value="${data.dosaggio || ''}" onchange="updateCalculations(); saveData();">
                         </div>
                         <div class="input-group">
                             <label class="input-label">Volte/giorno</label>
-                            <input type="number" class="input-field" value="1" min="1" onchange="updateCalculations()">
+                            <input type="number" class="input-field" value="${data.volteAlGiorno || '1'}" min="1" onchange="updateCalculations(); saveData();">
                         </div>
                     </div>
                     <div class="inputs-right">
                         <div class="input-group">
                             <label class="input-label">Cp/dose</label>
-                            <input type="number" class="input-field" value="1" min="0.5" step="0.5" onchange="updateCalculations()">
+                            <input type="number" class="input-field" value="${data.compressePerDose || '1'}" min="0.5" step="0.5" onchange="updateCalculations(); saveData();">
                         </div>
                         <div class="input-group">
                             <label class="input-label">Giorni</label>
-                            <input type="number" class="input-field" value="7" min="1" onchange="updateCalculations()">
+                            <input type="number" class="input-field" value="${data.giorni || '7'}" min="1" onchange="updateCalculations(); saveData();">
                         </div>
                     </div>
                     <div class="result-box">
-                        <div class="result-number">7</div>
+                        <div class="result-number">${data.compressePerDose && data.volteAlGiorno && data.giorni ? 
+                            (parseFloat(data.compressePerDose) * parseFloat(data.volteAlGiorno) * parseFloat(data.giorni)) : '7'}</div>
                         <div class="result-text">cp</div>
                     </div>
                 </div>
@@ -290,9 +331,16 @@
             updateVisibility();
             updateCalculations();
             
-            setTimeout(() => {
-                farmacoDiv.querySelector('.farmaco-nome').focus();
-            }, 100);
+            if (!data.nome) {
+                setTimeout(() => {
+                    farmacoDiv.querySelector('.farmaco-nome').focus();
+                }, 100);
+            }
+        }
+
+        function addFarmaco() {
+            addFarmacoWithData();
+            saveData();
         }
 
         function removeFarmaco(id) {
@@ -300,6 +348,7 @@
             element.remove();
             updateVisibility();
             updateCalculations();
+            saveData();
         }
 
         function updateCalculations() {
@@ -359,9 +408,16 @@
                 document.getElementById('farmaciContainer').innerHTML = '';
                 updateVisibility();
                 updateCalculations();
+                localStorage.removeItem('farmaciData');
             }
         }
 
+        // Carica i dati salvati quando la pagina è pronta
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
+        });
+
+        // Inizializza se non ci sono dati salvati
         updateVisibility();
     </script>
 </body>
